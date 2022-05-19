@@ -45,12 +45,86 @@ def size(btree: treeNode) -> int:
     else:
         return 1 + size(btree.left) + size(btree.right)
 
+def is_exists(btree: treeNode, key: object) -> bool:
+    """Return True if and only if a node of tree has the key.
+    :return: bool
+    """
+    if is_empty(btree):
+        return False
+    elif btree.root[0] == key:
+        return True
+    elif is_leaf(btree):
+        return False
+    elif btree.root[0] < key :
+        return is_exists(btree.right, key)
+    else:
+        return is_exists(btree.left, key)
+
+def insertIntoTree(btree: treeNode, key: object, value: object)-> None:
+    """
+    Inserts a new node into the tree.
+    :param btree: which is a treeNode
+    :param key: which is an object
+    :param value: which is an object
+    :return: None
+    """
+    if is_empty(btree):
+        btree.root = (key, value)
+        btree.left = treeNode()
+        btree.right = treeNode()
+    elif btree.root[0] == key:
+        btree.root = (key, value)
+    elif btree.root[0] < key:
+        insertIntoTree(btree.right, key, value)
+    else:
+        insertIntoTree(btree.left, key, value)
+
+def findTheSmallest(btree: treeNode) -> object:
+    """
+    Returns the smallest key in the tree.
+    :param btree: which is a treeNode
+    :return: root of the object
+    """
+    if is_empty(btree):
+        return None
+    elif not is_leaf(btree):
+        return findTheSmallest(btree.left)
+    else:
+        return btree.root[0]
+
+def lookup(btree: treeNode, key: object) -> object:
+    """
+    Returns the value associated with the key.
+    :param btree: which is a treeNode
+    :param key: which is an object
+    :return: value of the object
+    """
+    if is_empty(btree):
+        return None
+    elif btree.root[0] == key:
+        return btree.root[1]
+    elif btree.root[0] < key:
+        return lookup(btree.right, key)
+    else:
+        return lookup(btree.left, key)
 
 
 
+def print_in_order(btree: treeNode) -> None:
+    """Print tree contents in order."""
 
-
-
+    if is_empty(btree):
+        return
+    if btree.left:
+        print_in_order(btree.left)
+        print(btree.root)
+        if btree.right:
+            print_in_order(btree.right)
+    elif btree.right:
+        print(btree.root)
+        print_in_order(btree.right)
+    else:
+        print(btree.root)
 
 
 
