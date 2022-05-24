@@ -110,22 +110,21 @@ def lookup(btree: treeNode, key: object) -> object:
 
 
 
-def print_in_order(btree: treeNode) -> None:
+def printInOrder(btree: treeNode) -> None:
     """Print tree contents in order."""
 
     if is_empty(btree):
         return
     if btree.left:
-        print_in_order(btree.left)
+        printInOrder(btree.left)
         print(btree.root)
         if btree.right:
-            print_in_order(btree.right)
+            printInOrder(btree.right)
     elif btree.right:
         print(btree.root)
-        print_in_order(btree.right)
+        printInOrder(btree.right)
     else:
         print(btree.root)
-
 
 
 
