@@ -42,3 +42,87 @@ def flattening(nested_json: dict, sep: str = '.') -> dict:
         print("Json Cannot be empty")
 
 
+def listfillter(data: list, filteringtype: str) -> list:
+    """
+        given list can contain multiple type of datatye and return a list of only the type specified
+        filteringtype can be one of the following:
+            'str','int','float','bool'
+    """
+    out = []
+    if filteringtype == 'str':
+        for each in data:
+            if isinstance(each, str):
+                out.append(each)
+    elif filteringtype == 'int':
+        for each in data:
+            if isinstance(each, int):
+                out.append(each)
+    elif filteringtype == 'float':
+        for each in data:
+            if isinstance(each, float):
+                out.append(each)
+    elif filteringtype == 'bool':
+        for each in data:
+            if isinstance(each, bool):
+                out.append(each)
+    else:
+        print("Invalid filtering type")
+    return out
+
+
+def recursionlistfillter(data: list, filteringtype: str) -> list:
+    """
+    same as above but with recursion
+    :param data:
+    :param filteringtype:
+    :return:
+    """
+    output = []
+
+    if filteringtype.lower() == 'str':
+        def string(x: list):
+            if isinstance(x[-1], str):
+                output.append(x[-1])
+                x.pop()
+            else:
+                x.pop()
+            if len(x) > 0:
+                string(x)
+        string(data)
+    elif filteringtype.lower() == 'int':
+        def string(x: list):
+            if type(x[-1]) is int:
+                output.append(x[-1])
+                x.pop()
+            else:
+                x.pop()
+            if len(x) > 0:
+                string(x)
+        string(data)
+    elif filteringtype.lower() == 'float':
+        def string(x: list):
+            if isinstance(x[-1], float):
+                output.append(x[-1])
+                x.pop()
+            else:
+                x.pop()
+            if len(x) > 0:
+                string(x)
+        string(data)
+    elif filteringtype.lower() == 'bool':
+        def string(x: list):
+            if isinstance(x[-1], bool):
+                output.append(x[-1])
+                x.pop()
+            else:
+                x.pop()
+            if len(x) > 0:
+                string(x)
+
+        string(data)
+    else:
+        print("Unsupported Datatype")
+
+
+
+    return output
