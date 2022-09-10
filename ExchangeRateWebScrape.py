@@ -63,17 +63,17 @@ def connect_the_database_to_match(data):
 
     # Obtain connection string information from the portal
     config = {
-        'host': 'iclproduction.mysql.database.azure.com',
+        'host': 'test77.mysql.database.azure.com',
         'user': os.environ.get('DATABASE_LOGIN'),
         'password': os.environ.get('DATABASE_PASSWORD'),
-        'database': 'iclprod'
+        'database': 'test77',
     }
     # Construct connection string
 
     values = data.values.tolist()
     cols = data.columns.tolist()
     # checking before insert if exists then update the line where the date is the same
-    # add the new column into the database to able to insert; if need different currtency
+    # add the new column into the database to able to insert; if need different currency
     # add the new currency into the list above
     try:
         # connect to the database

@@ -42,6 +42,8 @@ def createlinkedlist():
     return head
 
 
+
+
 asda = createlinkedlist()
 print_list(asda)
 print("\n")
