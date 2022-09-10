@@ -1,7 +1,0 @@
-
-"""
-    fox and rabbit problem
-
-"""
-
-

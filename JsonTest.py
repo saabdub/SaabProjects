@@ -52,13 +52,13 @@ json_data3 = {}
 data = f.flattening(json_data3)
 assert data is None
 
+if __name__ == '__main__':
+    n = int(5)
+    for s in range(n):
+        if s != 0:
+            if s == 1:
+                number = "1"
+            else:
+                number = number + str(s)
 
-
-
-
-
-
-#for key, value in data.items():
-#    print(key, " = ", value)
-
-
+    print(number)
