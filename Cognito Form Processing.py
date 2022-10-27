@@ -1,13 +1,32 @@
-
-import time
-import datetime
 import os
 import json
-import shutil
+import smtplib
 from datetime import datetime
 import pandas as pd
 import mysql.connector
-from Emailing import Email
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+def Email(messages: str,info: str):
+    # send email
+    towho = os.getenv('GROUP_EMAIL') # get the email from the environment variable
+    try:
+        s = smtplib.SMTP(host='smtp.office365.com', port=587)
+        s.starttls()
+        s.login(os.getenv('EMAIL_USER'), os.getenv('EMAIL_PASS'))
+
+        msg = MIMEMultipart()
+        msg['From'] = os.getenv('EMAIL_USER')
+        msg['To'] = towho
+        msg['Subject'] = "Exchange Rate Webscrape "
+
+        msg.attach(MIMEText(messages, 'html'))
+        s.send_message(msg)
+        del msg
+        s.quit()
+    except Exception as e:
+        print(f"Error when try to send email : {e}")
+
 
 user = os.environ.get("USERNAME")
 class NewDbUpload():
@@ -19,15 +38,21 @@ class NewDbUpload():
         self.client_id = None
         self.errormessage = ""
 
-
     def connectnewdb(self, statement: str, statementtype: str):
-        mydb = mysql.connector.connect(host='iclproduction.mysql.database.azure.com',
+        """ Connect to the MySQL database server
+        :param statement: the sql statement to be executed
+        :param statementtype: the type of statement to be executed
+        :return: the result of the statement / id
+        """
+        mydb = mysql.connector.connect(host='test777.mysql.database.azure.com',
                                     user= os.environ.get('DATABASE_LOGIN'),
                                     password=os.environ.get('DATABASE_PASSWORD'),
-                                    database="production"
+                                    database="test777"
                                        )
+        # create a cursor
         con = mydb.cursor()
         try:
+            #depending the type of statement, execute the statement then return the result
             con.execute(statement)
             if statementtype == "select":
                 return con.fetchall()
@@ -42,10 +67,18 @@ class NewDbUpload():
         mydb.close()
 
     def getClient(self, cient_name: str, sector: str, industry: str, location: str):
-        print("Getting client id...")
-        statement = f"SELECT id FROM dim_client WHERE name = '{cient_name}' AND sector = '{sector}' AND industry = '{industry}' AND country = '{location}'"
-        result = self.connectnewdb(statement, "select")
+        """Get the client id from the database. If the client does not exist, create a new client
+        :param cient_name: the name of the client
+        :param sector: the sector of the client
+        :param industry: the industry of the client
+        :param location: the location of the head office of the client
+        :return: the client id"""
 
+        print("Getting client id...")
+        statement = f"SELECT id FROM dim_client WHERE name = '{cient_name}' AND sector = '{sector}' AND " \
+                    f"industry = '{industry}' AND country = '{location}'"
+        result = self.connectnewdb(statement, "select")
+        # if client exists, get the id if not, create a new client
         if result:
             self.client_id = result[0][0]
         else:
@@ -55,7 +88,17 @@ class NewDbUpload():
 
     def getStudyId(self, study_name: str, start_date: str,
                     end_date: str, months_actuals: int, year_commenced: int = datetime.now().year):
+
+        """Get the study id from the database. If the study does not exist, create a new study
+        :param study_name: the name of the study/project
+        :param start_date: the start date of the study/project
+        :param end_date: the end date of the study/project
+        :param months_actuals: the number of months of actuals in the study/project
+        :param year_commenced: the year the study/project commenced
+        :return: the study id"""
+
         print("Getting study id...")
+
         statement = f"SELECT id FROM dim_study WHERE name = '{study_name}'"
         result = self.connectnewdb(statement, "select")
         if result:
@@ -67,6 +110,14 @@ class NewDbUpload():
             self.study_id = self.connectnewdb(statement, "insert")
 
     def getCurrency(self, short_code: str):
+        """Get the currency id from the database. If the currency does not exist, create a new currency
+
+        to able to calculate on GBP exchange rate added later depending the client
+
+        :param short_code: the short code of the currency
+        :return: the currency id"""
+
+        print("Getting currency id...")
         statement = f"select id from dim_currency where short_code = '{short_code}'"
         result = self.connectnewdb(statement, "select")
         if result:
@@ -81,18 +132,38 @@ class NewDbUpload():
     def getGeography(self, city: str, location: str, region: str):
         statement = f"SELECT id FROM dim_geography WHERE city = '{city}' AND country = '{location}' AND " \
                     f"region = '{region}'"
+
+        """Get the geography id from the database. If the geography does not exist, create a new geography
+        :param city: the city of the geography
+        :param location: the country of the geography
+        :param region: the region of the geography
+        :return: the geography id"""
+
         result = self.connectnewdb(statement, "select")
         if result:
             return result[0][0]
         else:
             statement = f"INSERT INTO dim_geography (city, country, region) VALUES ('{city}', '{location}', '{region}')"
-            self.addToErrormessage(f"\n\nGeography {city}, {location}, {region} was not found in the database and was added.Please also fill up the missing information in the database.")
+            self.addToErrormessage(f"\n\nGeography {city}, {location}, {region} was not found in the database and was"
+                                   f" added. \n\nPlease also fill up the missing information in the database.")
             return self.connectnewdb(statement, "insert")
 
     def addToErrormessage(self, message: str):
         self.errormessage += message
 
     def getBusinessUnitid(self, sector, industry, short_code, city, location, region, line_of_business: str = "N/A", department:str = "N/A"):
+
+        """Get the business unit id from the database. If the business unit does not exist, create a new business unit
+        :param sector: the sector of the business unit
+        :param industry: the industry of the business unit
+        :param short_code: the short code of the currency of the business unit
+        :param city: the city of the business unit
+        :param location: the country of the business unit
+        :param region: the region of the business unit
+        :param line_of_business: the line of business of the business unit
+        :param department: the department of the business unit
+        :return: the business unit id"""
+
         print("Getting business unit id...")
         statement = f"SELECT id FROM dim_business_unit WHERE client_id = '{self.client_id}' and sector = '{sector}' " \
                     f"AND industry = '{industry}' AND  line_of_business = '{line_of_business}' AND department = '{department}'" \
@@ -109,6 +180,12 @@ class NewDbUpload():
             self.business_unit_id = self.connectnewdb(statement, "insert")
 
     def getServiceAreaid(self, service_area: str, sub_service_area: str = "All"):
+        """Get the service area id from the database. If the service area does not exist raise an error
+        :param service_area: the service area of the business unit
+        :param sub_service_area: the sub service area of the business unit
+        :return: the service area id"""
+
+
         statement = f"SELECT id FROM dim_service_area WHERE name = '{service_area}' and sub_service_area = '{sub_service_area}'"
         result = self.connectnewdb(statement, "select")
         if result:
@@ -123,8 +200,8 @@ class ProjectInfo(NewDbUpload):
 
     def __init__(self, test: bool, filename: str):
         super().__init__()
-        self.import_path = "C:/Users/" + user + "/Dropbox (ImprovIT)/ICL DB Import Folder/ICL Form Converter/Import"
-        self.export_path = "C:/Users/" + user + "/Dropbox (ImprovIT)/ICL DB Import Folder/ICL Form Converter/Export"
+        self.import_path = "C:/Users/" + user + "/Temp/Import" # path to import folder on local run
+        self.export_path = "C:/Users/" + user + "/Temp/Export"
         self.project_name = filename
         self.filename = filename
         self.databaseTableName = None
@@ -135,12 +212,14 @@ class ProjectInfo(NewDbUpload):
         self.status = None
 
     def check_record(self):
+        """Check if the records are exists in the database"""
         if self.study_id and self.business_unit_id:
             return True
         else:
             return False
 
     def InjecttionAttackCheck (self, item: str) -> str:
+        """Check if the item contains any injection attack and remove characters"""
         if item is not None:
             if "select" in item.lower() or "delete" in item.lower() or "update" in item.lower() or \
                     "drop" in item.lower() or "insert" in item.lower():
@@ -150,16 +229,15 @@ class ProjectInfo(NewDbUpload):
 
     def getData(self):
         """
-        This function will get the data from the import folder and will save the data in a dictionary
+        This function will get the data from the import folder
         :return: None
         """
         if self.filename is not None:
             with open(self.import_path + "/" + self.filename, "r") as f:
                 self.data = json.load(f)
-                #shutil.move(self.import_path + "/" + x, self.export_path + "/" + x)
-                #os.rename(self.export_path + "/" + x, self.export_path + f"/{str(datetime.now()).replace('-', '').replace(':','').replace(' ','').replace('.','')}" + x)
 
     def getAttachement(self):
+        """ if any attachment is available, a message will be sent"""
         try:
             self.numberOfAttachments = self.data["ProjectInformation"]["_999ATTATCHMENTSINCLUDED"]
             self.addToInfoMessage("\nThere are " + str(self.numberOfAttachments) + " attachments\n")
@@ -167,6 +245,7 @@ class ProjectInfo(NewDbUpload):
             self.numberOfAttachments = 0
 
     def getProjectInfo(self):
+        """Get the project information from the data"""
         if self.filename is not None:
             try:
                 self.project_info = self.data["ProjectInformation"] | self.data["Geography"] | self.data["Currency"]
@@ -174,6 +253,7 @@ class ProjectInfo(NewDbUpload):
                 self.addToErrormessage("\nProject Information is missing something worth checking\n")
 
     def cleanPojectInfo(self):
+        """Clean the project information from unwanted characters"""
         self.getProjectInfo()
         tempdict = {}
         if self.filename is not None:
@@ -190,7 +270,7 @@ class ProjectInfo(NewDbUpload):
             self.project_info = tempdict
 
     def dateChange(self, item: str) -> str:
-
+        """Change the date format from dd/mm/yyyy to yyyy-mm-dd"""
         if item is not None:
             try:
                 newdate = datetime.strptime(item, '%d/%m/%Y').strftime('%Y-%m-%d')
@@ -202,6 +282,8 @@ class ProjectInfo(NewDbUpload):
         self.infomessage += message
 
     def prepareDb(self):
+        """Prepare the database for the upload"""
+
         self.getClient(self.project_info["Client"], self.project_info["Sector"], self.project_info["Industry"],
                        self.project_info["Country2"])
         self.getStudyId(self.project_info["TProjectName"], self.project_info["TStudyPeriodStartDate"],
@@ -229,35 +311,20 @@ class allCognitoProcess(ProjectInfo):
         super().__init__(test, filename)
 
     def mainRun(self):
+        """ This main run extends the inherited one and will run the cognito process"""
         super().mainRun()
         print("Starting Cognito Process")
         self.extraStepsForDbBeforeLoad()
 
-    def cleanPojectInfo(self):
-        self.getProjectInfo()
-        tempdict = {}
-        if self.filename is not None:
-            for key, value in self.project_info.items():
-                if not "_" in key:
-                    if "date" in key.lower():
-                        value = self.dateChange(value)
-                    if str(value).strip() == "":
-                        value = None
-                    if "year" in key.lower():
-                        value = str(value).replace(",", "")
-                    if value is not None:
-                        tempdict[key] = self.InjecttionAttackCheck(str(value))
-
-            self.project_info = tempdict
 
     def formCheck(self):
 
         def getFieldsNameFromDatabase():
             config = {
-                'host': 'iclproduction.mysql.database.azure.com',
+                'host': 'test777.mysql.database.azure.com',
                 'user': os.environ.get('DATABASE_LOGIN'),
                 'password': os.environ.get('DATABASE_PASSWORD'),
-                'database': 'iclprod'
+                'database': 'test777'
             }
 
             try:
@@ -265,9 +332,9 @@ class allCognitoProcess(ProjectInfo):
                 cursor = conn.cursor()
                 cursor.execute(
                 "select column_name from information_schema.columns where table_name = '" + self.databaseTableName + "' \
-                and table_schema = 'iclprod' and column_name not like '%---%' and column_name <> 'Study_id' and \
+                and table_schema = 'test777' and column_name not like '%---%' and column_name <> 'Study_id' and \
                 ordinal_position between 3 and (select ordinal_position from information_schema.columns where table_schema \
-                = 'iclprod' and table_name = '" + self.databaseTableName + "'  and column_name like '%OriginalCurrency%')-1;")
+                = 'test777' and table_name = '" + self.databaseTableName + "'  and column_name like '%OriginalCurrency%')-1;")
                 fields =[]
                 rows = [item[0] for item in cursor.fetchall()]
                 # the reason for the NA here because BINARY fails me on mysql
@@ -281,10 +348,10 @@ class allCognitoProcess(ProjectInfo):
 
             except (mysql.connector.Error, mysql.connector.errors.ProgrammingError) as err:
                 print(err)
-                Email(err, self.data["cleint"]).Send()
+                Email(err, self.data["client"])
 
         def send_email_with_the_field(NotinDB: list, NotonCognito: list, NumberofAttachement: int,
-                                      UsedCognitoFormName: str, test: bool):
+                                      UsedCognitoFormName: str):
             if not NotinDB:
                 MissingFields = '<p style="font-size: 16px;font-weight: bold; color: green;"> ' \
                         "All the fields on the form ('{}') are correct and are in use.</p>".format(UsedCognitoFormName)
@@ -304,14 +371,18 @@ class allCognitoProcess(ProjectInfo):
                 ThereAreAttachements = ""
 
             message = "{}<br>{}<br>{}<br>".format(MissingFields, MissingQuestions, ThereAreAttachements)
-            Email(message, UsedCognitoFormName, Test=test).Send()
+            Email(message, UsedCognitoFormName)
 
         if self.data is not None:
+            """This function will check the form and the database to see if there are any missing fields"""
+
             filds = getFieldsNameFromDatabase()
             fieldsOnFormNotInDB = list(filter(lambda a: a not in self.data.keys(), filds))
             fieldsinDBNotOnForm = list(filter(lambda b: b not in filds, self.data.keys()))
-            send_email_with_the_field(fieldsinDBNotOnForm, fieldsOnFormNotInDB, self.numberOfAttachments,
-                                      self.databaseTableName, self.isTest)
+            if len(fieldsOnFormNotInDB) > 0 or len(fieldsinDBNotOnForm) > 0:
+                send_email_with_the_field(fieldsOnFormNotInDB, fieldsinDBNotOnForm, 0,
+                                          self.data["client"])
+
 
     def valueDataCheck(self):
         if self.data is not None:
@@ -343,6 +414,11 @@ class allCognitoProcess(ProjectInfo):
             self.data = {**self.data, **self.project_info}
 
     def flatten_json(self, nested_json: dict, exclude: list = [''], sep: str = '.') -> dict:
+        """This function will flatten the json file
+        :param nested_json: the json file
+        :param exclude: the keys to exclude
+        :param sep: the separator
+        :return: the flattened json file as question and answer """
         out = dict()
 
         def flatten(x: (list, dict, str), name: str = '', exclude=exclude):
@@ -353,7 +429,7 @@ class allCognitoProcess(ProjectInfo):
             elif type(x) is list:
                 i = 0
                 for a in x:
-                    if any(list == type(sl) or dict == type(sl) for sl in x):
+                    if any(list == type(sl) or dict == type(sl) for sl in x): # if the question multiple choice allow multiple answers
                         flatten(a, f'{name}{i}{sep}')
                     else:
                         out[name[:-1]] = x
@@ -369,10 +445,10 @@ class allCognitoProcess(ProjectInfo):
             fieldnames = list(self.data.keys())
             values = list(self.data.values())
             config = {
-                    'host': 'iclproduction.mysql.database.azure.com',
+                    'host': 'test777.mysql.database.azure.com',
                     'user': os.environ.get('DATABASE_LOGIN'),
                     'password': os.environ.get('DATABASE_PASSWORD'),
-                    'database': 'iclprod'
+                    'database': "test777"
                 }
 
             try:
@@ -384,7 +460,7 @@ class allCognitoProcess(ProjectInfo):
                 if idclient is not None:
                     cursor.execute(
                         "SELECT column_name FROM information_schema.columns where "
-                        "ordinal_position = 1 and table_schema = 'iclprod' and table_name = '" + self.databaseTableName + "'")
+                        "ordinal_position = 1 and table_schema = 'test777' and table_name = '" + self.databaseTableName + "'")
                     tablePrimaryKeyColumn = cursor.fetchone()
                     cursor.execute("select max(" + tablePrimaryKeyColumn[0] + ")+1 from " + self.databaseTableName + " ;")
                     rowNumber = cursor.fetchone()
@@ -396,7 +472,8 @@ class allCognitoProcess(ProjectInfo):
                         "INSERT INTO " + self.databaseTableName + " (idClient," + str(tablePrimaryKeyColumn[0]) + "," +
                         ",".join(l for l in fieldnames) + ") VAlUES (" + str(idclient[0]) + "," + str(rowNumber[0])
                         + "," + ",".join(l for l in values) + ");")
-                    cursor.execute("select LAST_INSERT_ID();")
+                    conn.commit()
+                    cursor.close()
 
                 else:
                     print("Client not found")
@@ -410,8 +487,9 @@ class allCognitoProcess(ProjectInfo):
             print("Filename: " + self.filename[:5] + " exported to csv")
 
     def getServiceareaname(self):
+
         try:
-            self.service_area_name = self.data["Form"]["Name"]
+            self.service_area_name = self.data["Name"]
             return True
         except:
             self.addToErrormessage("\nService Area Name is missing something worth checking\n")
@@ -435,11 +513,7 @@ class servers(allCognitoProcess):
         self.valueDataCheck()
         self.getTheTypeOfServers()
         self.serverSplitByType()
-        # self.formCheck() # This is the function that will check the form fileds vs DB fields and send an email if it is not correct
-        # self.loadDataToDatabese() #This is the main function that will load the data to the database
 
-        #self.test()
-        #self.exporttoCSV()
 
     def test(self):
         print(self.data["HPC"])
@@ -499,11 +573,7 @@ class dbs(allCognitoProcess):
         self.valueDataCheck()
         self.getTheTypeOfDatabase()
         self.databaseSplitByType()
-        # self.formCheck() # This is the function that will check the form fileds vs DB fields and send an email if it is not correct
-        # self.loadDataToDatabese() #This is the main function that will load the data to the database
 
-        #self.test()
-        #self.exporttoCSV()
 
     def test(self):
         pass
@@ -565,13 +635,6 @@ class datacentre(allCognitoProcess):
     #-----------------------------------------------------------------------------------------------
 
 
-
-        # self.formCheck() # This is the function that will check the form fileds vs DB fields and send an email if it is not correct
-        # self.loadDataToDatabese() #This is the main function that will load the data to the database
-
-        # self.test()
-        # self.exporttoCSV()
-
     def test(self):
         pass
 
@@ -587,9 +650,8 @@ class datacentre(allCognitoProcess):
         super().formCheck()
 
 
-
 def getinfo():
-    import_path = "C:/Users/" + user + "/Dropbox (ImprovIT)/ICL DB Import Folder/ICL Form Converter/Import"
+    import_path = "C:/Users/" + user + "/Temp/Import"
     for x in os.listdir(import_path):
         if x.endswith(".json"):
             return x
@@ -620,205 +682,9 @@ if __name__ == "__main__":
                     file.exporttoCSV()
 
                 if file.errormessage != "" or file.errormessage != "":
-                    Email(file.errormessage + file.infomessage, file.client_id, Test=test).Send()
+                    Email(file.errormessage + file.infomessage, file.client_id)
                 print("Done...")
             except Exception as e:
-                Email(str(e), "None", Test=test).Send()
-
-        time.sleep(15)
+                Email(str(e), "None")
 
 
-
-"""
-if __name__ == "__main__":
-    while True: # just normal while and break  so it's need a main run  ?? excel will be the same script or separate run??
-
-        the_file, fileprecheck = thenew.FilePreCheck()
-        #print(the_file,fileprecheck)
-        if not the_file:
-            print(" \r{}".format("I`m Running...Ready for Cognito... Nothing in Import Folder "+str(datetime.datetime.today().time())),end=" ")
-            #time.sleep(10)
-            #break
-        elif fileprecheck != "No":
-            print("Start")
-            dbname = the_file[:-5]
-            if dbname == "data_centre":
-
-                Howmany_dc, transposedata = thenew.number_of_rounds(the_file)
-                DC1, DC2, DC3, DC4, Attached_answer, What_to_do, Number_of_Attachements = thenew.import_data_for_datacetre(transposedata)
-                xx = 0
-
-                field_names_original = thenew.connect_the_database_to_match(dbname)
-
-                while xx < Howmany_dc:
-                    if xx == 0:
-                        passed_data = DC1
-                        DBSname = "DC1"
-                    elif xx == 1:
-                        passed_data = DC2
-                        DBSname = "DC2"
-                    elif xx == 2:
-                        passed_data = DC3
-                        DBSname = "DC3"
-                    elif xx == 3:
-                        passed_data = DC4
-                        DBSname = "DC4"
-                    xx += 1
-                    Cleandata, temp_original = thenew.datacentre_multiple_execution(passed_data)
-                    thenew.Upload_the_data(Cleandata, dbname, What_to_do)
-                    if What_to_do != "Complete":
-                        thenew.Calculating_numbercheck(Cleandata, dbname)
-                    list_of_different_items = list(filter(lambda a: a not in field_names_original, temp_original))
-                    list_of_different_items2 = list(filter(lambda b: b not in temp_original, field_names_original))
-
-                    thenew.send_email_with_the_field(list_of_different_items, list_of_different_items2, Number_of_Attachements, dbname)
-            elif dbname == 'dbs':
-                Howmany_round, transposedata = thenew.number_of_rounds(the_file)
-                if len(Howmany_round) > 1:
-                    Howmany_round.append('All')
-                the_111, the_222, the_333, the_444, the_555, the_666, the_777, the_888, the_000, Attached_answer, What_to_do, Number_of_Attachements  = thenew.servers_dbs_import(transposedata)
-                list_of_different_items3 = ""
-                field_names_original = thenew.connect_the_database_to_match(dbname)
-                while Howmany_round: # should replace s in list drop but change the name
-                    if "Oracle" in Howmany_round:
-                        Howmany_round.remove("Oracle")
-                        passed_data = the_111
-                        DBSname = "Oracle"
-                    elif "SQL" in Howmany_round:
-                        Howmany_round.remove("SQL")
-                        passed_data = the_222
-                        DBSname = "SQL"
-                    elif "DB2" in Howmany_round:
-
-                        Howmany_round.remove("DB2")
-                        passed_data = the_333
-                        DBSname = "DB2"
-                    elif "Progress (OpenEdge)" in Howmany_round:
-                        Howmany_round.remove("Progress (OpenEdge)")
-                        passed_data = the_444
-                        DBSname = "Progress (OpenEdge)"
-                    elif "Informix" in Howmany_round:
-                        Howmany_round.remove("Informix")
-                        passed_data = the_555
-                        DBSname = "Informix"
-                    elif "Sybase" in Howmany_round:
-                        Howmany_round.remove("Sybase")
-                        passed_data = the_666
-                        DBSname = "Sybase"
-                    elif "Foxpro" in Howmany_round:
-                        Howmany_round.remove("Foxpro")
-                        passed_data = the_777
-                        DBSname = "Foxpro"
-                    elif "Other" in Howmany_round:
-                        Howmany_round.remove("Other")
-                        passed_data = the_888
-                        DBSname = "Other"
-                    elif "All" in Howmany_round:
-                        Howmany_round.remove("All")
-                        passed_data = the_000
-                        DBSname = "All"
-                    Cleandata, temp_original = thenew.datacentre_multiple_execution(passed_data)
-                    list_of_different_items = list(filter(lambda a: a not in field_names_original, temp_original))
-                    list_of_different_items2 = list(filter(lambda b: b not in temp_original, field_names_original))
-                    thenew.Upload_the_data(Cleandata, dbname, What_to_do)
-                    thenew.Calculating_numbercheck(Cleandata, dbname)
-
-                    thenew.send_email_with_the_field(list_of_different_items, list_of_different_items2,
-                                                     Number_of_Attachements, dbname)
-            elif dbname == 'servers':
-
-                Howmany_round, transposedata = thenew.number_of_rounds(the_file)
-                if len(Howmany_round) > 1:
-                    Howmany_round.append('Total')
-
-                the_111, the_222, the_333, the_444, the_555, the_666, the_777, the_888, the_000, Attached_answer, Status_report, Number_of_Attachements = thenew.servers_dbs_import( transposedata)
-                list_of_different_items3 = ""
-                field_names_original = thenew.connect_the_database_to_match(dbname)
-
-                while Howmany_round: # use dictionary if this grow
-                    if "Wintel" in Howmany_round:
-                        Howmany_round.remove("Wintel")
-                        passed_data = the_111
-                        DBSname = "Wintel"
-                    elif "Unix/Linux" in Howmany_round:
-                        Howmany_round.remove("Unix/Linux")
-                        passed_data = the_222
-                        DBSname = "Unix/Linux"
-                    elif "Virtual Environment" in Howmany_round:
-                        Howmany_round.remove("Virtual Environment")
-                        passed_data = the_333
-                        DBSname = "Virtual Environment"
-                    elif "AS/400 (i Series)" in Howmany_round:
-                        Howmany_round.remove("AS/400 (i Series)")
-                        passed_data = the_444
-                        DBSname = "AS/400 (i Series)"
-                    elif "Novell" in Howmany_round:
-                        Howmany_round.remove("Novell")
-                        passed_data = the_555
-                        DBSname = "Novell"
-                    elif "VMS" in Howmany_round:
-                        Howmany_round.remove("VMS")
-                        passed_data = the_666
-                        DBSname = "VMS"
-                    elif "HPC" in Howmany_round:
-                        Howmany_round.remove("HPC")
-                        passed_data = the_777
-                        DBSname = "HPC"
-                    elif "Other" in Howmany_round:
-                        Howmany_round.remove("Other")
-                        passed_data = the_888
-                        DBSname = "Other"
-                    elif "Total" in Howmany_round:
-                        Howmany_round.remove("Total")
-                        passed_data = the_000
-                        DBSname = "Total"
-
-                    Cleandata, temp_original  = thenew.datacentre_multiple_execution(passed_data)
-
-                    list_of_different_items = list(filter(lambda a: a not in field_names_original, temp_original))
-                    list_of_different_items2 = list(filter(lambda b: b not in temp_original, field_names_original))
-
-                    thenew.Upload_the_data(Cleandata, dbname, Status_report)
-                    if Status_report != "Complete":
-                        thenew.Calculating_numbercheck(Cleandata, dbname)
-
-
-                    thenew.send_email_with_the_field(list_of_different_items, list_of_different_items2, Number_of_Attachements, dbname)
-            elif dbname == 'Cloud':
-                #data = thenew.import_the_data(the_file)
-                thenew.Cloud_Tables_split()
-
-            elif dbname == 'ProjectInfo':
-                data = thenew.import_the_data(the_file)
-                Cleandata, temp_original, Attached_answer, What_to_do, Number_of_Attachements = thenew.cleaning_dataframes(data)
-                ProjectInfo.Client_Check_upload(Cleandata)
-                # send email what happened
-            elif dbname == 'ProjectSummary':
-                thenew.ProjectSummary()
-                thenew.Email_sys("Processed, ProjectSummary", "ProjectSummary")
-                #message = "This is in design phase no upload or any data calculation. Need to review "
-                #thenew.Email_sys(message)
-            else:
-
-                data = thenew.import_the_data(the_file)
-
-                Cleandata, temp_original, Attached_answer, What_to_do, Number_of_Attachements = thenew.cleaning_dataframes(data)
-
-                field_names_original = thenew.connect_the_database_to_match(dbname)
-                # compare the list of DB fieldname to Cognito filed name
-                thenew.Upload_the_data(Cleandata, dbname, What_to_do)
-                list_of_different_items = list(filter(lambda a: a not in field_names_original, temp_original))
-                list_of_different_items2 = list(filter(lambda b: b not in temp_original, field_names_original))
-
-                thenew.send_email_with_the_field(list_of_different_items, list_of_different_items2, Number_of_Attachements, dbname)
-                print("Done")
-                if What_to_do != "Complete":
-                    thenew.Calculating_numbercheck(Cleandata, dbname)
-
-
-
-
-        time.sleep(20)
-
-
-"""
