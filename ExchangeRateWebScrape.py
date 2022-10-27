@@ -10,11 +10,19 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
 
+"""
+This Script is to get the exchange rate from the website and insert into the database
+
+Each time the script run it will insert the yesterday closed exchange rates
+
+"""
+
 
 # make sure the column in the database is excists this is not adding new columns
 
 country_excode = ["EUR", "JPY", "CHF", "CAD", "AUD", "USD", "PLN", "DKK", "NOK", "SEK", "ZAR"]
 
+# manually you can add multiple dates to the dates list to get the data
 dates =[]
 
 # dates = ["2021-04-30"] #if you need load of date just add here the dates
@@ -23,22 +31,28 @@ dates.append(yesterday)
 
 
 def Email(messages: str):
+    # send email if there is an error
+    towho = os.getenv('GROUP_EMAIL') # get the email from the environment variable
+    try:
+        s = smtplib.SMTP(host='smtp.office365.com', port=587)
+        s.starttls()
+        s.login(os.getenv('EMAIL_USER'), os.getenv('EMAIL_PASS'))
 
-    towho = os.getenv('GROUP_EMAIL')
-    s = smtplib.SMTP(host='smtp.office365.com', port=587)
-    s.starttls()
-    s.login(os.getenv('EMAIL_USER'), os.getenv('EMAIL_PASS'))
-    msg = MIMEMultipart()
-    msg['From'] = os.getenv('EMAIL_USER')
-    msg['To'] = towho
-    msg['Subject'] = "Exchange Rate Webscrape "
-    msg.attach(MIMEText(messages, 'html'))
-    s.send_message(msg)
-    del msg
-    s.quit()
+        msg = MIMEMultipart()
+        msg['From'] = os.getenv('EMAIL_USER')
+        msg['To'] = towho
+        msg['Subject'] = "Exchange Rate Webscrape "
+
+        msg.attach(MIMEText(messages, 'html'))
+        s.send_message(msg)
+        del msg
+        s.quit()
+    except Exception as e:
+        print(f"Error when try to send email : {e}")
+        sys.exit()
 
 def getdata():
-
+    # get the data from the website we scrape the xe.com
     for k in dates:
         website = "https://xe.com/currencytables/?from=GBP&date={}#table-section".format(k)
         # read the html table
@@ -104,7 +118,6 @@ def connect_the_database_to_match(data):
                     sql = "update exchange_table set {} = {} where date = '{}';".format(s, values[0][1:][k-1], values[0][0])
                     cursor.execute(sql)
                     k = k + 1
-                    time.sleep(0.1)
                 conn.commit()
                 conn.close()
             except mysql.connector.errors.ProgrammingError as e:
