@@ -8,12 +8,13 @@ while True:
 
     response = requests.get(url)
 
-    # Parse HTML
+    # Parse a HTML
     soup = BeautifulSoup(response.content, "html.parser")
 
+    # ha kell masik div class csak modositsd 
     div = soup.find("div", {"class": "container ik alert-bar yellow p-0"})
 
-    # read the div out
+    # a .text csak kiolvassa a divet ha letezik ha nem vissza adja hogy nincs riasztas.
     try:
         print(div.text) 
     except:
