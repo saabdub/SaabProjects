@@ -1,24 +1,48 @@
-
-
 <!DOCTYPE html>
-
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>My App</title>
+<head>
+	<title>Your Name - Resume</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="{{ url_for('static', filename='style2.css') }}">
 
-  
 
-  </head>
-  <body>
-    
-    <h1>My App</h1>
-    <p>My App is a simple web app.</p>
-    <p>It has a <a href="/register">register</a> page.</p>
-    <p>It has a <a href="/login">login</a> page.</p>
-    
-  </body>
+</head>
+<body>
+	<header>
+		<h1>Saab</h1>
+		<p>Web Developer</p>
+	</header>
+<div class="header-right">
+	<form action="/login" method="GET">
+		<button class="login-btn">Login</button>
+	</form>
+	<form action="/register" method="GET">
+		<button class="register-btn">Register</button>
+	</form>
+	
+</div>
+<section>
+	<img src="yourphoto.jpg" alt="Your Name">
+	<h2>About Me</h2>
+	<p>Write a brief paragraph about yourself. Include your education, work experience, and any other relevant information.</p>
+	
+	<h2>Experience</h2>
+	<p><strong>Web Developer, XYZ Company</strong><br>
+	January 2019 - Present<br>
+	Developed and maintained multiple company websites using HTML, CSS, and Python. Collaborated with a team of designers and developers to create engaging and user-friendly websites that met client needs.</p>
+
+	<h2>Skills</h2>
+	<ul>
+		<li>HTML5</li>
+		<li>CSS3</li>
+		
+	</ul>
+
+	<button>Contact Me</button>
+</section>
+</body>
 </html>
+
 
 
 
