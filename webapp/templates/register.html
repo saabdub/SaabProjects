@@ -2,17 +2,29 @@
 <!-- Path: webapp/templates/login.html simple register webpage -->
 
 <!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Register Page</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style2.css') }}">
 <body>
-    <h1>My App</h1>
-    <p>Register on my app.</p>
-    <form action="/register" method="post">
+    <header>
+        <h1>Register</h1>
+    </header>
+    <form class = "form_reg" action="/register" method="post">
         <input type="text" name="username" placeholder="username">
         <input type="phone" name="phone" placeholder="phone">
         <input type="email" name="email" placeholder="email">
         <input type="password" name="password" placeholder="password">
         <input type="submit" value="Register">
     </form>
+    <button class = "goback-button" onclick="goBack()">Go Back</button>
 
+    <script>
+        function goBack() {
+            window.history.back();
+        }
+    </script>
 </body>
 
-
+</html>

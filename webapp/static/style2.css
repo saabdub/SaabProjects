@@ -18,10 +18,11 @@ section {
     padding: 0 20px;
 }
 
-h1 {
+.index_h1 {
     font-size: 2.5em;
     margin-bottom: 20px;
 }
+
 
 img {
     border-radius: 50%;
@@ -30,14 +31,9 @@ img {
     max-width: 200px;
 }
 
-p {
-    font-size: 1.2em;
-    line-height: 1.5;
-    margin-bottom: 20px;
-    text-align: justify;
-}
 
-button {
+
+.index_button {
     background-color: #333;
     border: none;
     color: #fff;
@@ -51,7 +47,7 @@ button {
     transition: background-color 0.2s ease-in-out;
 }
 
-button:hover {
+.index_button:hover {
     background-color: #555;
 }
 
@@ -112,3 +108,126 @@ button:hover {
 	background-color: #f2f2f2;
 }
 
+
+/* backgroud color*/
+body {
+  background-color: #f7f3e9;
+}
+h1_reg {
+  text-align: center;
+  color: #333;
+}
+  
+form {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+input[type="text"], input[type="phone"], input[type="email"], input[type="password"] {
+  display: block;
+  width: 95%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: none;
+  border-radius: 3px;
+  background-color: #f5f5f5;
+  box-shadow: inset 0 2px 2px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease;
+}
+
+input[type="text"]:focus, input[type="phone"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+  background-color: #f3ead7;
+}
+
+input[type="submit"] {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 3px;
+  background-color: #8bc34a;
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+input[type="submit"]:hover {
+  background-color: #689f38;
+}
+.goback-button {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #4CAF50;
+  color: #fff;
+  padding: 10px;
+  border: none;
+  border-radius: 3px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.goback-button:hover {
+    background-color: #3e8e41;
+}
+@keyframes jump-and-slam {
+  0% {
+      transform: translateY(0) scale(1);
+  }
+  50% {
+      transform: translateY(-50px) scale(1.2);
+  }
+  60% {
+      transform: translateY(0) scale(1.2);
+  }
+  70% {
+      transform: translateY(-30px) scale(1.2);
+  }
+  80% {
+      transform: translateY(0) scale(1.2);
+  }
+  90% {
+      transform: translateY(-15px) scale(1.2);
+  }
+  100% {
+      transform: translateY(0) scale(1);
+  }
+}
+
+/* Apply the animation to the image */
+img {
+  animation: jump-and-slam 2s ease-in-out;
+}
+
+/* Add a red cracks effect */
+img:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url(path/to/cracks.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  animation: fade-out 2s ease-in-out;
+}
+
+/* Define the keyframes for the fade-out animation */
+@keyframes fade-out {
+  0% {
+      opacity: 1;
+  }
+  100% {
+      opacity: 0;
+  }
+}

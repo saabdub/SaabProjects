@@ -24,7 +24,7 @@ def init_clienttable():
     db.close()
 
 init_clienttable()
-
+ 
 def get_clienttable(email, password):
     db = connect_db()
     cur = db.execute('select * from clienttable where email = ? and password = ?', [email, password])
